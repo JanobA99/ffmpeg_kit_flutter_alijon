@@ -154,22 +154,51 @@ public class FFmpegKitFlutterPlugin implements FlutterPlugin, ActivityAware, Met
     }
 
 
-    private void init(BinaryMessenger messenger, Context context, android.app.Activity activity, PluginRegistry.Registrar registrar, ActivityPluginBinding activityBinding) {
-        if (context == null) {
-            Log.w(LIBRARY_NAME, "FFmpegKitFlutterPlugin cannot be initialized without a context.");
+    private void init(BinaryMessenger messenger, Context context, android.app.Activity activity, ActivityPluginBinding activityBinding) {
+        if (context == null || messenger == null) {
+            Log.w(LIBRARY_NAME, "FFmpegKitFlutterPlugin cannot be initialized without a valid context or messenger.");
             return;
         }
 
         this.messenger = messenger;
         this.context = context;
+        this.activity = activity;
 
-        if (activity != null) {
-            // Agar activity mavjud bo‘lsa, u bilan ishlash mumkin
-            Log.d(LIBRARY_NAME, "Plugin initialized with activity.");
+        registerGlobalCallbacks();
+
+        if (methodChannel == null) {
+            methodChannel = new MethodChannel(messenger, METHOD_CHANNEL);
+            methodChannel.setMethodCallHandler((call, result) -> {
+                // Handle method calls
+            });
         } else {
-            Log.d(LIBRARY_NAME, "Plugin initialized without activity.");
+            Log.i(LIBRARY_NAME, "FFmpegKitFlutterPlugin method channel was already initialised.");
         }
+
+        if (eventChannel == null) {
+            eventChannel = new EventChannel(messenger, EVENT_CHANNEL);
+            eventChannel.setStreamHandler(new EventChannel.StreamHandler() {
+                @Override
+                public void onListen(Object arguments, EventChannel.EventSink events) {
+                    // Handle event channel subscription
+                }
+
+                @Override
+                public void onCancel(Object arguments) {
+                    // Handle event channel cancellation
+                }
+            });
+        } else {
+            Log.i(LIBRARY_NAME, "FFmpegKitFlutterPlugin event channel was already initialised.");
+        }
+
+        if (activityBinding != null) {
+            activityBinding.addActivityResultListener((requestCode, resultCode, data) -> false);
+        }
+
+        Log.d(LIBRARY_NAME, String.format("FFmpegKitFlutterPlugin %s initialised with context %s and activity %s.", this, context, activity));
     }
+
 
 
     protected void registerGlobalCallbacks() {
@@ -191,10 +220,10 @@ public class FFmpegKitFlutterPlugin implements FlutterPlugin, ActivityAware, Met
     }
 
     @Override
-    public void onAttachedToEngine(@NonNull final FlutterPluginBinding flutterPluginBinding) {
-        this.flutterPluginBinding = flutterPluginBinding;
+    public void onAttachedToEngine(@NonNull FlutterPluginBinding binding) {
+        this.context = binding.getApplicationContext();
+        this.messenger = binding.getBinaryMessenger();
     }
-
     @Override
     public void onDetachedFromEngine(@NonNull final FlutterPluginBinding binding) {
         this.flutterPluginBinding = null;
@@ -203,8 +232,16 @@ public class FFmpegKitFlutterPlugin implements FlutterPlugin, ActivityAware, Met
     @Override
     public void onAttachedToActivity(@NonNull ActivityPluginBinding activityPluginBinding) {
         Log.d(LIBRARY_NAME, String.format("FFmpegKitFlutterPlugin %s attached to activity %s.", this, activityPluginBinding.getActivity()));
-        init(flutterPluginBinding.getBinaryMessenger(), flutterPluginBinding.getApplicationContext(), activityPluginBinding.getActivity(), null, activityPluginBinding);
+
+        if (messenger == null || context == null) {
+            Log.e(LIBRARY_NAME, "Messenger or context is null. onAttachedToEngine might not have been called.");
+            return;
+        }
+
+        init(messenger, context, activityPluginBinding.getActivity(), activityPluginBinding);
     }
+
+
 
     @Override
     public void onDetachedFromActivityForConfigChanges() {
