@@ -191,11 +191,9 @@ public class FFmpegKitFlutterPlugin implements FlutterPlugin, ActivityAware, Met
     public void onAttachedToEngine(@NonNull FlutterPluginBinding binding) {
         this.context = binding.getApplicationContext();
         this.messenger = binding.getBinaryMessenger(); // ✅ messenger o‘rnatildi
-
-        methodChannel = new MethodChannel(messenger, METHOD_CHANNEL);
-        methodChannel.setMethodCallHandler((call, result) -> {
-            // Metod chaqirishlarni shu yerda ishlov berish
-        });
+        registerGlobalCallbacks();
+        methodChannel = new MethodChannel(binding.getBinaryMessenger(), METHOD_CHANNEL);
+        methodChannel.setMethodCallHandler(this);
 
         eventChannel = new EventChannel(messenger, EVENT_CHANNEL);
         eventChannel.setStreamHandler(new EventChannel.StreamHandler() {
