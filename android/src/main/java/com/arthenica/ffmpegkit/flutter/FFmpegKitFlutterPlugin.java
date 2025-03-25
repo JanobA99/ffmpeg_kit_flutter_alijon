@@ -196,17 +196,7 @@ public class FFmpegKitFlutterPlugin implements FlutterPlugin, ActivityAware, Met
         methodChannel.setMethodCallHandler(this);
 
         eventChannel = new EventChannel(messenger, EVENT_CHANNEL);
-        eventChannel.setStreamHandler(new EventChannel.StreamHandler() {
-            @Override
-            public void onListen(Object arguments, EventChannel.EventSink events) {
-                // Event kanaliga obuna bo‘lish
-            }
-
-            @Override
-            public void onCancel(Object arguments) {
-                // Event kanalidan chiqish
-            }
-        });
+        eventChannel.setStreamHandler(this);
 
         Log.d(LIBRARY_NAME, "FFmpegKitFlutterPlugin attached to engine.");
     }
@@ -238,7 +228,7 @@ public class FFmpegKitFlutterPlugin implements FlutterPlugin, ActivityAware, Met
         Log.d(LIBRARY_NAME, "FFmpegKitFlutterPlugin attached to activity.");
         init(messenger, context, activityPluginBinding.getActivity(), activityPluginBinding);
         activity = activityPluginBinding.getActivity();
-
+        activityPluginBinding.addActivityResultListener(this);
         // MethodChannel qayta o‘rnatish
         methodChannel.setMethodCallHandler(this);
     }
@@ -255,6 +245,7 @@ public class FFmpegKitFlutterPlugin implements FlutterPlugin, ActivityAware, Met
     public void onReattachedToActivityForConfigChanges(@NonNull ActivityPluginBinding activityPluginBinding) {
         onAttachedToActivity(activityPluginBinding);
         activity = activityPluginBinding.getActivity();
+        activityPluginBinding.addActivityResultListener(this);
     }
 
     @Override
